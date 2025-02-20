@@ -1,0 +1,62 @@
+import requests
+import bs4
+from bs4 import BeautifulSoup
+from PIL import Image
+import io
+import cv2
+import numpy as np
+
+# Function to detect if an image contains a window
+def detect_window_in_image(img_url):
+    try:
+        # Download image
+        response = requests.get(img_url)
+        img = Image.open(io.BytesIO(response.content))
+
+        # Convert image to grayscale for processing
+        img = np.array(img)
+        gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+
+        # Use a simple window detection method (e.g., edge detection or feature matching)
+        # This is just a placeholder; a more complex detection model would be needed
+        edges = cv2.Canny(gray, 100, 200)
+
+        # If edges are detected, assume it might be a window (simple heuristic)
+        if np.sum(edges) > 10000:  # Threshold for edge detection area
+            return True
+        else:
+            return False
+    except Exception as e:
+        print(f"Error detecting window in image: {e}")
+        return False
+
+url = 'https://sfbay.craigslist.org/search/sby/hhh?srchType=T&availabilityMode=0&sale_date=all+dates'
+headers = {
+    'User-Agent' : 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/90.0.4430.212 Safari/537.36'
+}
+
+r = requests.get(url, headers=headers)
+soup = bs4.BeautifulSoup(r.text, 'html.parser')
+
+# Loop through each listing to scrape title and image URL
+i = 0
+while i < 10:
+    # Scrape the title of the listing
+    title = soup.find_all('h3', {'class': 'result-heading'})[i].find_all('a')[0].text
+    print(f"Title: {title}")
+
+    # Scrape the image URL (if it exists)
+    img_tag = soup.find_all('a', {'class': 'result-image'})[i]
+    if img_tag:
+        img_url = img_tag.find('img')['src']  # Get the 'src' of the <img> tag
+        print(f"Image URL: {img_url}")
+
+        # Detect if image contains a window
+        if detect_window_in_image(img_url):
+            print("This listing has a window in the image!")
+        else:
+            print("No window detected in this image.")
+    else:
+        print("No image found.")
+
+    i += 1
